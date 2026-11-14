@@ -61,7 +61,9 @@ Thumbs.db
 backend/app/knowledge_base/.indexed_kb_cache.json
 *.cache.json
 
-# Local SQLite databases
+# Local SQLite databases & vector store
 *.db
 *.sqlite3
 backend/chroma_data/
+backend/app/chroma_data/
+*chroma_data/
