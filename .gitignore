@@ -59,3 +59,8 @@ Thumbs.db
 # Runtime KB Index Cache
 backend/app/knowledge_base/.indexed_kb_cache.json
 *.cache.json
+
+# Local SQLite databases
+*.db
+*.sqlite3
+backend/chroma_data/

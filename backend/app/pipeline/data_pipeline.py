@@ -9,6 +9,13 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+# Check if chromadb is available in the environment
+try:
+    import chromadb
+    CHROMADB_AVAILABLE = True
+except ImportError:
+    CHROMADB_AVAILABLE = False
+
 
 def compute_cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
     """Calculates cosine similarity between two numeric dense vectors."""
@@ -33,19 +40,35 @@ class DocumentChunk(BaseModel):
 
 class KnowledgeBaseDataPipeline:
     """
-    Dedicated Data Ingestion & Processing Pipeline.
+    Dedicated Data Ingestion & ChromaDB Vector Pipeline.
     Loads raw markdown Help Articles, parses headings, chunks content semantically,
-    generates vector embeddings, and persists pre-computed index to disk/memory.
+    generates vector embeddings (nomic-embed-text via Ollama), and indexes into ChromaDB.
     """
 
     def __init__(
         self,
         kb_directory: str,
+        chroma_db_dir: Optional[str] = None,
         cache_file: Optional[str] = None
     ):
         self.kb_directory = kb_directory
         self.cache_file = cache_file or os.path.join(kb_directory, ".indexed_kb_cache.json")
+        self.chroma_db_dir = chroma_db_dir or os.path.join(os.path.dirname(kb_directory), "chroma_data")
         self.chunks: List[DocumentChunk] = []
+        self.chroma_client = None
+        self.chroma_collection = None
+
+        if CHROMADB_AVAILABLE:
+            try:
+                os.makedirs(self.chroma_db_dir, exist_ok=True)
+                self.chroma_client = chromadb.PersistentClient(path=self.chroma_db_dir)
+                self.chroma_collection = self.chroma_client.get_or_create_collection(
+                    name="support_kb_articles",
+                    metadata={"hnsw:space": "cosine"}
+                )
+                logger.info(f"ChromaDB initialized at: {self.chroma_db_dir}")
+            except Exception as e:
+                logger.warning(f"ChromaDB initialization error: {str(e)}. Using fallback index.")
 
     def load_and_chunk_documents(self) -> List[DocumentChunk]:
         """Scans all markdown files in KB directory and splits them into semantic section chunks."""
@@ -95,7 +118,6 @@ class KnowledgeBaseDataPipeline:
             if not section:
                 continue
 
-            # Identify section heading
             section_heading = "General Overview"
             content_text = section
 
@@ -108,7 +130,6 @@ class KnowledgeBaseDataPipeline:
                     section_heading = section[3:].strip()
                     content_text = section_heading
 
-            # Composite clean chunk text with title context for high retrieval accuracy
             chunk_text = f"Article: {article_title}\nSection: {section_heading}\n\n{content_text}"
 
             chunk = DocumentChunk(
@@ -127,12 +148,11 @@ class KnowledgeBaseDataPipeline:
     async def run_pipeline(self, provider: Any, force_reindex: bool = False) -> List[DocumentChunk]:
         """
         Executes end-to-end pipeline:
-        1. Checks for cached pre-computed index to minimize startup latency.
-        2. If absent or forced, chunks documents and computes embeddings using LLM provider.
+        1. Chunks documents and generates embeddings (e.g. nomic-embed-text).
+        2. Indexes into ChromaDB persistent collection if available.
         3. Saves index to cache.
         """
         if not force_reindex and self.load_index():
-            # Validate embedding dimension matches provider
             test_embed = await provider.generate_embedding("test")
             if self.chunks and len(self.chunks[0].embedding) == len(test_embed):
                 logger.info(f"Data Pipeline: Loaded {len(self.chunks)} chunks from persistent cache.")
@@ -143,13 +163,38 @@ class KnowledgeBaseDataPipeline:
 
         # Generate embeddings
         logger.info("Data Pipeline: Computing embeddings for chunks...")
+        ids = []
+        embeddings = []
+        documents = []
+        metadatas = []
+
         for chunk in self.chunks:
             embedding = await provider.generate_embedding(chunk.text)
             chunk.embedding = embedding
+            ids.append(chunk.chunk_id)
+            embeddings.append(embedding)
+            documents.append(chunk.text)
+            metadatas.append({
+                "source_file": chunk.source_file,
+                "article_title": chunk.article_title,
+                "section_heading": chunk.section_heading
+            })
 
-        # Save to disk
+        # Add to ChromaDB if available
+        if self.chroma_collection and embeddings and len(embeddings[0]) > 0:
+            try:
+                self.chroma_collection.upsert(
+                    ids=ids,
+                    embeddings=embeddings,
+                    documents=documents,
+                    metadatas=metadatas
+                )
+                logger.info(f"Data Pipeline: Upserted {len(ids)} chunks into ChromaDB collection.")
+            except Exception as e:
+                logger.warning(f"Data Pipeline: ChromaDB upsert warning: {str(e)}")
+
         self.save_index()
-        logger.info(f"Data Pipeline: Pipeline execution complete. {len(self.chunks)} chunks indexed and cached.")
+        logger.info(f"Data Pipeline: Pipeline execution complete. {len(self.chunks)} chunks indexed.")
         return self.chunks
 
     def save_index(self) -> None:
@@ -181,7 +226,46 @@ class KnowledgeBaseDataPipeline:
         top_k: int = 2,
         min_similarity: float = 0.35
     ) -> List[Dict[str, Any]]:
-        """Performs cosine vector search across all indexed chunks."""
+        """
+        Performs vector search across all indexed chunks using ChromaDB if active,
+        or cosine similarity fallback.
+        """
+        # If ChromaDB collection is active and has documents
+        if self.chroma_collection and self.chroma_collection.count() > 0:
+            try:
+                results = self.chroma_collection.query(
+                    query_embeddings=[query_embedding],
+                    n_results=top_k
+                )
+                if results and results["ids"] and len(results["ids"][0]) > 0:
+                    scored = []
+                    for i in range(len(results["ids"][0])):
+                        dist = results["distances"][0][i] if "distances" in results and results["distances"] else 0.0
+                        # Cosine distance: similarity = 1 - distance
+                        similarity = 1.0 - dist
+                        if similarity >= min_similarity:
+                            meta = results["metadatas"][0][i]
+                            doc = results["documents"][0][i]
+                            dummy_chunk = DocumentChunk(
+                                chunk_id=results["ids"][0][i],
+                                source_file=meta.get("source_file", ""),
+                                article_title=meta.get("article_title", ""),
+                                section_heading=meta.get("section_heading", ""),
+                                text=doc,
+                                embedding=query_embedding
+                            )
+                            scored.append({
+                                "chunk": dummy_chunk,
+                                "score": similarity,
+                                "title": meta.get("article_title", ""),
+                                "section": meta.get("section_heading", ""),
+                                "content": doc
+                            })
+                    return scored
+            except Exception as e:
+                logger.warning(f"ChromaDB query fallback: {str(e)}")
+
+        # High-speed fallback
         scored = []
         for chunk in self.chunks:
             score = compute_cosine_similarity(query_embedding, chunk.embedding)
