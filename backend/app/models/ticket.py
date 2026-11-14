@@ -1,6 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, DateTime, JSON
 from app.core.database import Base
+
+
+def get_utc_now():
+    return datetime.now(timezone.utc)
 
 
 class Ticket(Base):
@@ -29,8 +33,8 @@ class Ticket(Base):
     agent_notes = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now, nullable=False)
 
     def __repr__(self) -> str:
         return f"<Ticket id={self.id} title='{self.title[:30]}' status='{self.status}' category='{self.category}'>"

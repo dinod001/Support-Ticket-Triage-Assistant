@@ -55,3 +55,7 @@ Thumbs.db
 
 # Docker logs
 *.log
+
+# Runtime KB Index Cache
+backend/app/knowledge_base/.indexed_kb_cache.json
+*.cache.json
