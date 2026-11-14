@@ -62,7 +62,7 @@ def test_retrieval_returns_correct_article():
     async def _run():
         provider = MockRAGProvider()
         service = RAGService(provider=provider, similarity_threshold=0.35)
-        indexed_count = await service.index_knowledge_base()
+        indexed_count = await service.index_knowledge_base(force_reindex=True)
         assert indexed_count >= 8
 
         # Sample inquiry about returning an item
@@ -87,7 +87,7 @@ def test_retrieval_no_match_honest_fallback():
     async def _run():
         provider = MockRAGProvider()
         service = RAGService(provider=provider, similarity_threshold=0.50)
-        await service.index_knowledge_base()
+        await service.index_knowledge_base(force_reindex=True)
 
         # Query completely unrelated to e-commerce policies (all dimensions 0.0)
         draft_reply, cited = await service.generate_draft_reply(
