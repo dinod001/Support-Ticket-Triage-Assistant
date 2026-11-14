@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -10,14 +11,15 @@ class Settings(BaseSettings):
     BACKEND_PORT: int = 8000
     FRONTEND_PORT: int = 3000
 
-    # Database Configuration (PostgreSQL default, SQLite fallback for fast testing)
-    DATABASE_URL: str = "postgresql://postgres:postgres@db:5432/triage_db"
+    # Database: In Docker Compose, DATABASE_URL is injected as postgresql://...
+    # Locally on host machine, defaults to lightweight SQLite for zero-config startup
+    DATABASE_URL: str = "sqlite:///./triage_local.db"
 
-    # LLM Provider Configuration ('ollama', 'groq', or 'gemini')
+    # LLM Provider Configuration ('ollama', 'groq', or 'mock')
     LLM_PROVIDER: str = "ollama"
 
-    # Ollama Configuration (Local Default)
-    OLLAMA_BASE_URL: str = "http://ollama:11434"
+    # Ollama Configuration
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_CHAT_MODEL: str = "qwen2.5:1.5b"
     OLLAMA_EMBED_MODEL: str = "nomic-embed-text"
     OLLAMA_TIMEOUT_SECONDS: float = 60.0
