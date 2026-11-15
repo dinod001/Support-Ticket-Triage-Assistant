@@ -1,12 +1,12 @@
 """
-Automated Evaluation Script for Support Ticket Triage Assistant
-=============================================================
-Satisfies Stretch Goal: Evaluates 10 realistic sample customer tickets,
-computes triage classification accuracy, RAG citation precision, and
-reports latency metrics.
+Automated Benchmark Evaluation Harness for Support Ticket Triage Assistant
+=========================================================================
+Satisfies Stretch Goal #2: Evaluates 10 ground-truth customer tickets,
+measuring automated classification accuracy, RAG citation precision, and
+end-to-end latency.
 
 Usage:
-    python evaluate.py [--provider mock|ollama|groq]
+    python -m evaluation.benchmark [--provider mock|ollama|groq]
 """
 
 import argparse
@@ -14,15 +14,16 @@ import asyncio
 import os
 import sys
 import time
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
-# Ensure backend root is on path
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+# Ensure backend root is on sys.path
+BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if BACKEND_ROOT not in sys.path:
+    sys.path.insert(0, BACKEND_ROOT)
 
-from app.services.llm_provider import MockLLMProvider, OllamaProvider, GroqProvider, get_llm_provider
-from app.services.triage_service import TriageService
+from app.services.llm_provider import GroqProvider, MockLLMProvider, OllamaProvider, get_llm_provider
 from app.services.rag_service import RAGService
-
+from app.services.triage_service import TriageService
 
 # 10 Ground-Truth Test Cases
 TEST_BENCHMARK: List[Dict[str, str]] = [

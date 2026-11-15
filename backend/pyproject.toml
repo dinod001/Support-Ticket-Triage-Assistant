@@ -12,6 +12,7 @@ select = [
 ignore = [
     "E501",  # line length handled flexibly
     "B008",  # FastAPI Depends in function signature
+    "E402",  # Module level import not at top (needed for sys.path configuration in test/eval scripts)
 ]
 
 [tool.ruff.lint.isort]
