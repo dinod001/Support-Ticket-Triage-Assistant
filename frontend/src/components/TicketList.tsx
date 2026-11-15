@@ -13,7 +13,8 @@ import {
   Meh,
   Frown,
   Flame,
-  Inbox
+  Inbox,
+  Trash2
 } from 'lucide-react';
 
 interface TicketListProps {
@@ -80,6 +81,19 @@ export const TicketList: React.FC<TicketListProps> = ({ onSelectTicket, onRefres
     setCategoryFilter('All');
     setPriorityFilter('All');
     setSearchQuery('');
+  };
+
+  const handleDeleteTicket = async (e: React.MouseEvent, ticketId: number) => {
+    e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to permanently delete Ticket #${ticketId}?`)) {
+      return;
+    }
+    try {
+      await ticketsApi.deleteTicket(ticketId);
+      fetchTickets();
+    } catch (err: any) {
+      alert('Failed to delete ticket: ' + (err.response?.data?.detail || err.message));
+    }
   };
 
   const getPriorityBadge = (priority?: string | null) => {
@@ -383,7 +397,14 @@ export const TicketList: React.FC<TicketListProps> = ({ onSelectTicket, onRefres
                 </div>
 
                 {/* Right Side: Action Button */}
-                <div className="flex items-center justify-end shrink-0">
+                <div className="flex items-center space-x-2 shrink-0">
+                  <button
+                    onClick={(e) => handleDeleteTicket(e, ticket.id)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"
+                    title="Delete ticket"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                   <div className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all">
                     <span>Review & Reply</span>
                     <ChevronRight className="w-3.5 h-3.5 ml-1" />

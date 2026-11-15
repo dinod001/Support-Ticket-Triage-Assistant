@@ -1,20 +1,32 @@
 import os
 import sys
 
+# Ensure backend root is on sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from app.core.config import settings
+
+settings.ENVIRONMENT = "test"
+settings.LLM_PROVIDER = "mock"
+settings.DATABASE_URL = "sqlite:///:memory:"
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-# Ensure backend root is on sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from app.core.database import Base, get_db
 from app.main import app
 from app.services.llm_provider import MockLLMProvider
 from app.services.rag_service import RAGService
 from app.services.triage_service import TriageService
+
+# Immediately initialize mock services on app.state before TestClient enters lifespan
+mock_provider = MockLLMProvider()
+app.state.provider = mock_provider
+app.state.triage_service = TriageService(provider=mock_provider)
+app.state.rag_service = RAGService(provider=mock_provider)
 
 # Setup isolated test in-memory SQLite database with StaticPool so all threads share tables
 test_engine = create_engine(
@@ -39,12 +51,7 @@ app.dependency_overrides[get_db] = override_get_db
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_test_app():
-    """Initializes mock services on app.state before running API tests."""
-    mock_provider = MockLLMProvider()
-    app.state.provider = mock_provider
-    app.state.triage_service = TriageService(provider=mock_provider)
-    app.state.rag_service = RAGService(provider=mock_provider)
-    # Ensure tables exist
+    """Ensures mock services and tables exist throughout test module."""
     Base.metadata.create_all(bind=test_engine)
     yield
 
@@ -153,3 +160,29 @@ def test_stream_draft_endpoint():
     content = stream_resp.text
     assert "data:" in content
     assert '"done": true' in content
+
+
+def test_delete_ticket():
+    """Verifies that an existing ticket can be deleted and subsequent lookups return 404."""
+    # Create ticket
+    payload = {
+        "title": "Temporary ticket to delete",
+        "description": "This ticket will be deleted immediately."
+    }
+    create_resp = client.post("/api/tickets", json=payload)
+    assert create_resp.status_code == 201
+    ticket_id = create_resp.json()["id"]
+
+    # Delete ticket
+    del_resp = client.delete(f"/api/tickets/{ticket_id}")
+    assert del_resp.status_code == 204
+
+    # Verify 404 on subsequent get
+    get_resp = client.get(f"/api/tickets/{ticket_id}")
+    assert get_resp.status_code == 404
+
+
+def test_delete_ticket_not_found():
+    """Verifies that deleting a non-existent ticket returns 404."""
+    del_resp = client.delete("/api/tickets/999999")
+    assert del_resp.status_code == 404

@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   Play,
   RotateCcw,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 
 interface TicketDetailProps {
@@ -40,6 +41,7 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({ ticketId, onBack, on
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
   const [streaming, setStreaming] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -138,6 +140,23 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({ ticketId, onBack, on
     );
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Are you sure you want to permanently delete Ticket #${ticketId}? This action cannot be undone.`)) {
+      return;
+    }
+    setDeleting(true);
+    setError(null);
+    try {
+      await ticketsApi.deleteTicket(ticketId);
+      onTicketUpdated?.();
+      onBack();
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.message || 'Failed to delete ticket.';
+      setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto py-16 px-4 flex flex-col items-center justify-center text-slate-500">
@@ -216,6 +235,17 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({ ticketId, onBack, on
           >
             <Save className={`w-3.5 h-3.5 mr-1.5 ${saving ? 'animate-spin' : ''}`} />
             {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+
+          {/* Delete Ticket Button */}
+          <button
+            onClick={handleDelete}
+            disabled={saving || deleting}
+            className="inline-flex items-center px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 shadow-xs transition-colors disabled:opacity-50"
+            title="Permanently delete ticket"
+          >
+            <Trash2 className={`w-3.5 h-3.5 mr-1.5 ${deleting ? 'animate-spin' : ''}`} />
+            {deleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>

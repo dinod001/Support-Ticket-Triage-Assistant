@@ -37,18 +37,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Database init warning (will retry on container start): {str(e)}")
 
-    # 2. Warm up singleton services on app.state
-    provider = get_llm_provider()
-    app.state.provider = provider
-    app.state.triage_service = TriageService(provider=provider)
-    app.state.rag_service = RAGService(provider=provider)
+    # 2. Warm up singleton services on app.state if not already injected (e.g. in tests)
+    if getattr(app.state, "provider", None) is None:
+        provider = get_llm_provider()
+        app.state.provider = provider
+        app.state.triage_service = TriageService(provider=provider)
+        app.state.rag_service = RAGService(provider=provider)
 
-    # 3. Pre-index Knowledge Base articles
-    try:
-        count = await app.state.rag_service.index_knowledge_base()
-        logger.info(f"Knowledge Base pre-warmed: {count} articles indexed in memory.")
-    except Exception as e:
-        logger.error(f"Error pre-indexing knowledge base: {str(e)}")
+    # 3. Pre-index Knowledge Base articles (skip during isolated test runs)
+    if settings.ENVIRONMENT != "test":
+        try:
+            count = await app.state.rag_service.index_knowledge_base()
+            logger.info(f"Knowledge Base pre-warmed: {count} articles indexed in memory.")
+        except Exception as e:
+            logger.warning(f"KB indexing warning (Chroma/Ollama warmup deferred): {str(e)}")
 
     logger.info("Backend warm-up complete. Ready to receive requests.")
     yield

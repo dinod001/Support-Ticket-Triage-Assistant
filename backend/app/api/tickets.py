@@ -162,6 +162,34 @@ def update_ticket(
         )
 
 
+@router.delete("/{ticket_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_ticket(
+    ticket_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Permanently deletes a ticket by ID.
+    Useful for system administration and clearing test data.
+    """
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ticket with ID {ticket_id} was not found."
+        )
+
+    try:
+        db.delete(ticket)
+        db.commit()
+        return None
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete ticket: {str(e)}"
+        )
+
+
 @router.get("/{ticket_id}/stream-draft")
 async def stream_draft_reply(
     ticket_id: int,
