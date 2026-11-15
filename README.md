@@ -143,26 +143,29 @@ Every single LLM call records:
 
 ## 6. Evaluation & RAG Benchmarking (Ragas)
 
-### Automated Evaluation Script (`backend/evaluate.py`)
-To satisfy the stretch goal, we provide an automated evaluation harness testing **10 ground-truth ticket scenarios**:
+### Automated Evaluation Suite (`backend/evaluation/`)
+To satisfy the assessment stretch goals, we provide a dedicated evaluation suite under `backend/evaluation/`:
 
-```bash
-# Run with local default provider:
-cd backend
-python evaluate.py
+1. **Deterministic Benchmark Harness (`evaluation.benchmark`):**
+   Tests **10 ground-truth ticket scenarios** measuring category accuracy, citation relevance, and end-to-end latency:
+   ```bash
+   cd backend
+   python -m evaluation.benchmark
 
-# Or run with mock provider:
-python evaluate.py --provider mock
-```
+   # Or run instantly with mock provider:
+   python -m evaluation.benchmark --provider mock
+   ```
 
-The script evaluates:
-- **Triage Accuracy:** Category classification precision against expected labels.
-- **Citation Match Rate:** Verification that the appropriate knowledge base article was retrieved and cited.
-- **Latency Distribution:** Tracking end-to-end execution times.
-
-### Production RAG Evaluation with Ragas Framework
-In a production setting, evaluating RAG requires measuring more than simple keyword matching. The **Ragas (Retrieval Augmented Generation Assessment)** framework defines four foundational metrics that are ideal for this application:
-1. **Faithfulness:** Measures if the drafted reply is grounded exclusively in the retrieved KB article (preventing policy hallucination).
+2. **RAGAS Framework Metric Evaluation (`evaluation.ragas_eval`):**
+   Implements official **RAGAS (Retrieval Augmented Generation Assessment)** metrics:
+   - **Faithfulness:** Verifies the reply is grounded solely in the retrieved context (zero hallucination).
+   - **Answer Relevance:** Measures direct alignment with the customer's query.
+   - **Context Precision:** Signal-to-noise ratio in top retrieved context.
+   - **Context Recall:** Verifies all necessary policy clauses were retrieved.
+   ```bash
+   cd backend
+   python -m evaluation.ragas_eval
+   ```
 2. **Answer Relevance:** Evaluates whether the generated response directly answers the customer's specific inquiry.
 3. **Context Precision:** Evaluates if the top retrieved markdown chunk contains the exact policy clause needed.
 4. **Context Recall:** Verifies whether all pertinent policy constraints (e.g., 30-day refund window, original packaging requirement) were captured.
