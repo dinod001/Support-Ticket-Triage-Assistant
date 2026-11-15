@@ -4,7 +4,7 @@ set -e
 # ==============================================================================
 # Auto-provisioning Entrypoint for Dockerized Ollama
 # 1. Starts the Ollama daemon in the background
-# 2. Waits for health readiness on port 11434
+# 2. Waits for health readiness using native `ollama list`
 # 3. Pulls required chat and embedding models on first launch (Zero-API-key reviewer requirement)
 # 4. Hands over control to keep the daemon running
 # ==============================================================================
@@ -13,8 +13,8 @@ echo ">>> [Ollama Entrypoint] Starting Ollama server in background..."
 /bin/ollama serve &
 PID=$!
 
-echo ">>> [Ollama Entrypoint] Waiting for Ollama daemon to listen on port 11434..."
-until curl -s http://localhost:11434/api/tags > /dev/null 2>&1; do
+echo ">>> [Ollama Entrypoint] Waiting for Ollama daemon to become ready..."
+until ollama list > /dev/null 2>&1; do
     sleep 2
 done
 echo ">>> [Ollama Entrypoint] Ollama daemon is ready!"
