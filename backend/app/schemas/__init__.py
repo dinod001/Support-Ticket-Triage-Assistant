@@ -1,4 +1,4 @@
-from app.schemas.ticket import TicketCreate, TicketUpdate, TicketResponse, TicketListResponse
+from app.schemas.ticket import TicketCreate, TicketListResponse, TicketResponse, TicketUpdate
 from app.schemas.triage import TriageResult
 
 __all__ = [

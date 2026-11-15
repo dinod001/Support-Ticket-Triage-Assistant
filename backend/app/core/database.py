@@ -1,6 +1,8 @@
 from typing import Generator
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
+
 from app.core.config import settings
 
 # Normalize postgresql:// to postgresql+psycopg:// for psycopg3 compatibility
@@ -33,6 +35,5 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db(target_engine=None) -> None:
     """Creates database tables automatically on startup if they do not exist."""
-    import app.models  # Ensure all models are imported so Base.metadata knows about them
     eng = target_engine or engine
     Base.metadata.create_all(bind=eng)

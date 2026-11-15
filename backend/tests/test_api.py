@@ -1,5 +1,6 @@
 import os
 import sys
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -9,11 +10,11 @@ from sqlalchemy.pool import StaticPool
 # Ensure backend root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.main import app
 from app.core.database import Base, get_db
+from app.main import app
 from app.services.llm_provider import MockLLMProvider
-from app.services.triage_service import TriageService
 from app.services.rag_service import RAGService
+from app.services.triage_service import TriageService
 
 # Setup isolated test in-memory SQLite database with StaticPool so all threads share tables
 test_engine = create_engine(

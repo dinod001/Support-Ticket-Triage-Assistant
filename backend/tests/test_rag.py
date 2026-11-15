@@ -5,9 +5,10 @@ import sys
 # Ensure backend root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.services.rag_service import RAGService, compute_cosine_similarity
-from app.services.llm_provider import BaseLLMProvider
+from app.pipeline.data_pipeline import compute_cosine_similarity
 from app.prompts.rag_prompt import NO_ARTICLE_FALLBACK_REPLY
+from app.services.llm_provider import BaseLLMProvider
+from app.services.rag_service import RAGService
 
 
 class MockRAGProvider(BaseLLMProvider):
