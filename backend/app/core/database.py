@@ -35,5 +35,7 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db(target_engine=None) -> None:
     """Creates database tables automatically on startup if they do not exist."""
+    if settings.ENVIRONMENT == "test" and target_engine is None:
+        return
     eng = target_engine or engine
     Base.metadata.create_all(bind=eng)

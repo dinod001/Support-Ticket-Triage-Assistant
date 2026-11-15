@@ -52,6 +52,13 @@ export const ticketsApi = {
   },
 
   /**
+   * Permanently delete ticket by ID
+   */
+  async deleteTicket(id: number): Promise<void> {
+    await apiClient.delete(`/tickets/${id}`);
+  },
+
+  /**
    * Stream draft reply token-by-token using SSE
    */
   streamDraft(
