@@ -41,15 +41,15 @@ jobs:
 
       - name: Run Pytest Suite (Mocked LLM Provider)
         env:
-          LLM_PROVIDER: mock
-          DATABASE_URL: sqlite:///:memory:
-          ENVIRONMENT: test
+          LLM_PROVIDER: "mock"
+          DATABASE_URL: "sqlite:///:memory:"
+          ENVIRONMENT: "test"
         run: |
           pytest tests/ -v --durations=10
 
       - name: Run Automated Evaluation Benchmark (Stretch Goal #2)
         env:
-          LLM_PROVIDER: mock
+          LLM_PROVIDER: "mock"
         run: |
           python -m evaluation.benchmark --provider mock
 
