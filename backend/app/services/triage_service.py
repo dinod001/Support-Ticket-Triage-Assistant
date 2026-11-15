@@ -2,15 +2,13 @@ import json
 import logging
 import time
 from typing import Optional, Tuple
+
 from sqlalchemy.orm import Session
-from app.prompts.triage_prompt import (
-    TRIAGE_SYSTEM_PROMPT,
-    TRIAGE_RETRY_PROMPT,
-    build_triage_user_prompt
-)
+
+from app.prompts.triage_prompt import TRIAGE_RETRY_PROMPT, TRIAGE_SYSTEM_PROMPT, build_triage_user_prompt
 from app.schemas.triage import TriageResult
-from app.services.llm_provider import BaseLLMProvider, get_llm_provider
 from app.services.llm_logger import record_llm_call
+from app.services.llm_provider import BaseLLMProvider, get_llm_provider
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,8 @@
 import logging
 from typing import Optional
+
 from sqlalchemy.orm import Session
+
 from app.models.llm_log import LLMLog
 
 logger = logging.getLogger(__name__)

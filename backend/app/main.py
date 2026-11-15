@@ -1,13 +1,15 @@
 import logging
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.api import api_router
 from app.core.config import settings
 from app.core.database import init_db
-from app.api import api_router
 from app.services.llm_provider import get_llm_provider
-from app.services.triage_service import TriageService
 from app.services.rag_service import RAGService
+from app.services.triage_service import TriageService
 
 # Configure logging
 logging.basicConfig(

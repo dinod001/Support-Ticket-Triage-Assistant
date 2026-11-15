@@ -5,7 +5,9 @@ import math
 import re
 from abc import ABC, abstractmethod
 from typing import List, Optional
+
 import httpx
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)

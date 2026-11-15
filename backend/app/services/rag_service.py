@@ -2,16 +2,14 @@ import logging
 import os
 import time
 from typing import Any, Dict, List, Optional, Tuple
+
 from sqlalchemy.orm import Session
+
 from app.core.config import settings
-from app.pipeline.data_pipeline import KnowledgeBaseDataPipeline, compute_cosine_similarity
-from app.prompts.rag_prompt import (
-    RAG_DRAFT_SYSTEM_PROMPT,
-    RAG_DRAFT_USER_PROMPT,
-    NO_ARTICLE_FALLBACK_REPLY
-)
-from app.services.llm_provider import BaseLLMProvider, get_llm_provider
+from app.pipeline.data_pipeline import KnowledgeBaseDataPipeline
+from app.prompts.rag_prompt import NO_ARTICLE_FALLBACK_REPLY, RAG_DRAFT_SYSTEM_PROMPT, RAG_DRAFT_USER_PROMPT
 from app.services.llm_logger import record_llm_call
+from app.services.llm_provider import BaseLLMProvider, get_llm_provider
 
 logger = logging.getLogger(__name__)
 

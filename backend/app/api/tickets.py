@@ -2,18 +2,15 @@ import asyncio
 import json
 import logging
 from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.models.ticket import Ticket
-from app.schemas.ticket import (
-    TicketCreate,
-    TicketUpdate,
-    TicketResponse,
-    TicketListResponse
-)
+from app.schemas.ticket import TicketCreate, TicketListResponse, TicketResponse, TicketUpdate
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
